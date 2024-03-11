@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Test</title>
+	</head>
+	<br>
+		<p >Status :<span id="status"></span></p> <br/>
+		<button onclick="startRecording()">Start Recording</button>
+		<button onclick="stopRecording((buffer) => analyze(buffer))">Stop Recording</button><br><br>
+		<p>MFCC - </p>
+		<textarea id="output" cols="100" rows="100"></textarea>
+
+
+		<script src="./meyda.min.js"></script>
+		<script>
+			const audioURL = "/gettysburg10.wav";
+			let mediaRecorder;
+			let chunks = [];
+
+			function startRecording() {
+				navigator.mediaDevices.getUserMedia({ audio: true })
+				  .then(function(stream) {
+					mediaRecorder = new MediaRecorder(stream);
+					mediaRecorder.ondataavailable = function(e) {
+					  chunks.push(e.data);
+					};
+					mediaRecorder.start();
+					document.getElementById("status").innerText = "Recording";
+				  })
+				  .catch(function(err) {
+					console.log('Error starting recording: ' + err);
+				  });
+			  }
+			  
+			  function stopRecording(callback) {
+				mediaRecorder.stop();
+				mediaRecorder.onstop = function() {
+				  const blob = new Blob(chunks, { type: 'audio/wav' });
+				  const reader = new FileReader();
+				  reader.readAsArrayBuffer(blob);
+				  reader.onloadend = function() {
+					const buffer = reader.result;
+					chunks = [];
+					document.getElementById("status").innerText = "Analyzing ...";
+					callback(buffer);
+				  };
+				};
+			  }
+
+			async function extractMFCC(audioBuffer) {
+				const signal = new Float32Array(512);
+				const result = [];
+				for (let i = 0; i < audioBuffer.sampleRate * 5; i += 512) {
+					audioBuffer.copyFromChannel(signal, 0, i);
+					result.push(Meyda.extract(["mfcc"], signal).mfcc);
+				}
+				return result;
+			}
+
+			async function audioBufferFromArrayBuffer(arrayBuffer) {
+				const audioContext = new OfflineAudioContext({
+					length: 1,
+					sampleRate: 44100,
+				});
+				const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+				return audioBuffer;
+			}
+
+			async function analyze(arrayBuffer) {
+				const audioBuffer = await audioBufferFromArrayBuffer(arrayBuffer);
+				const mfcc = await extractMFCC(audioBuffer);
+				document.getElementById("output").value = JSON.stringify(mfcc);
+				document.getElementById("status").innerText = "Analyze Complete";
+			}
+		</script>
+	</body>
+</html>
