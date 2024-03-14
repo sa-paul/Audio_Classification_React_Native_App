@@ -5,13 +5,15 @@
 #include <arpa/inet.h>
 
 #define PORT 8080
+#define MAX_MSG_SIZE 1024
 
 int main() {
     int server_fd, new_socket;
     struct sockaddr_in address;
     int opt = 1;
     int addrlen = sizeof(address);
-    char *hello = "Hello from server";
+    char *hello = "Hello from server written in c";
+    char buffer[MAX_MSG_SIZE] = {0};
 
     // Creating socket file descriptor
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
@@ -45,6 +47,17 @@ int main() {
     }
 
     send(new_socket, hello, strlen(hello), 0);
-    printf("Hello message sent\n");
+    printf("Hello message sent from server\n");
+
+    // Receive message from client
+    int bytes_received = recv(new_socket, buffer, MAX_MSG_SIZE, 0);
+    if (bytes_received == -1) {
+        perror("recv");
+        exit(EXIT_FAILURE);
+    } else if (bytes_received == 0) {
+        printf("Client disconnected\n");
+    } else {
+        printf("Message received from client: %s\n", buffer);
+    }
     return 0;
 }
