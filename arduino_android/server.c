@@ -10,6 +10,7 @@
 int main() {
     int server_fd, new_socket;
     struct sockaddr_in address;
+    char * ipAddress = "172.18.1.77";
     int opt = 1;
     int addrlen = sizeof(address);
     char buffer[MAX_BUFFER_SIZE] = {0};
@@ -40,7 +41,7 @@ int main() {
     //     exit(EXIT_FAILURE);
     // }
     address.sin_family = AF_INET;
-    address.sin_addr.s_addr = INADDR_ANY;
+    address.sin_addr.s_addr = inet_addr(ipAddress);
     address.sin_port = htons(PORT);
 
     // Forcefully attaching socket to the port 8080
