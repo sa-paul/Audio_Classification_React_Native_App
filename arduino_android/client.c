@@ -1,19 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <string.h>
 
 #define PORT 8080
+#define MAX_BUFFER_SIZE 1024
 
-int main(int argc, char const *argv[]) {
-    int sock = 0, valread;
+int main() {
+    int sock = 0;
     struct sockaddr_in serv_addr;
-    char buffer[1024] = {0};
+    char buffer[MAX_BUFFER_SIZE] = {0};
+    FILE *audio_file;
 
+    // Creating socket file descriptor
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        printf("\n Socket creation error \n");
-        return -1;
+        perror("socket creation error");
+        exit(EXIT_FAILURE);
     }
 
     serv_addr.sin_family = AF_INET;
@@ -21,16 +24,31 @@ int main(int argc, char const *argv[]) {
 
     // Convert IPv4 and IPv6 addresses from text to binary form
     if(inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr)<=0) {
-        printf("\nInvalid address/ Address not supported \n");
-        return -1;
+        perror("invalid address/ Address not supported");
+        exit(EXIT_FAILURE);
     }
 
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        printf("\nConnection Failed \n");
-        return -1;
+        perror("connection failed");
+        exit(EXIT_FAILURE);
     }
 
-    valread = read(sock, buffer, 1024);
-    printf("%s\n", buffer);
+    // Open audio file for writing
+    audio_file = fopen("received_audio.wav", "wb");
+    if (audio_file == NULL) {
+        perror("Error opening file");
+        exit(EXIT_FAILURE);
+    }
+
+    // Receiving audio file
+    int bytes_received;
+    while ((bytes_received = recv(sock, buffer, MAX_BUFFER_SIZE, 0)) > 0) {
+        fwrite(buffer, 1, bytes_received, audio_file);
+    }
+
+    printf("Audio file received successfully\n");
+
+    fclose(audio_file);
+    close(sock);
     return 0;
 }
